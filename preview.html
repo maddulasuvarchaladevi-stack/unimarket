@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniMarket — Smart Community Marketplace (Interactive Preview)</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: '#4F46E5', // Indigo
+              hover: '#4338CA',
+              light: '#EEF2FF',
+            },
+            secondary: {
+              DEFAULT: '#60A5FA', // Soft Blue
+              hover: '#3B82F6',
+              light: '#EFF6FF',
+            },
+            accent: {
+              DEFAULT: '#14B8A6', // Teal
+              hover: '#0D9488',
+              light: '#F0FDFA',
+            },
+            background: '#F8FAFC',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          boxShadow: {
+            premium: '0 10px 30px -10px rgba(79, 70, 229, 0.1)',
+            card: '0 4px 20px -2px rgba(148, 163, 184, 0.12), 0 2px 8px -1px rgba(148, 163, 184, 0.08)',
+            hover: '0 20px 40px -15px rgba(79, 70, 229, 0.18)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & Babel CDNs -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Custom animations and styling classes */
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    .premium-card {
+      background: #FFFFFF;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.08), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .premium-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -15px rgba(79, 70, 229, 0.12), 0 10px 20px -10px rgba(148, 163, 184, 0.1);
+      border-color: rgba(79, 70, 229, 0.2);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeInUp {
+      animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes alertPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .alert-dot {
+      animation: alertPulse 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-background text-slate-800 antialiased font-sans">
+
+  <div id="root"></div>
+
+  <!-- React code starts -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- 1. SVGs Components to prevent CDN dependency errors ---
+    const IconSearch = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>;
+    const IconMapPin = ({ className="w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>;
+    const IconShieldCheck = ({ className="w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>;
+    const IconShoppingBag = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>;
+    const IconCalendarRange = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>;
+    const IconWrench = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>;
+    const IconArrowRight = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>;
+    const IconCheckCircle = () => <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>;
+    const IconArrowRightLeft = ({ className="w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>;
+    const IconHeart = ({ className="w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>;
+    const IconAward = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>;
+    const IconTrash = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>;
+    const IconChevronDown = ({ className="w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>;
+    const IconX = ({ className="w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>;
+    const IconPlus = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>;
+    const Store = ({ className="w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    );
+    const Upload = ({ className="w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+    );
+
+    // --- 2. Initial Mock Data ---
+    const INITIAL_COMMUNITIES = [
+      { id: 'iitb', name: 'IIT Bombay', type: 'College Campus', city: 'Mumbai' },
+      { id: 'bitsp', name: 'BITS Pilani', type: 'College Campus', city: 'Pilani' },
+      { id: 'manipal', name: 'MIT Manipal', type: 'College Campus', city: 'Manipal' },
+      { id: 'h3', name: 'Hostel Block 3 (IITB)', type: 'Hostel', city: 'Mumbai' },
+    ];
+
+    const INITIAL_USERS = [
+      {
+        id: 'user_1',
+        name: 'Aarav Mehta',
+        email: 'aarav.mehta@iitb.ac.in',
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop&q=80',
+        communityId: 'iitb',
+        hostel: 'Hostel 4, Room 302',
+        isVerified: true,
+        rating: 4.8,
+        reputation: 92,
+        joinedDate: 'Jan 2025'
+      },
+      {
+        id: 'user_2',
+        name: 'Ananya Sharma',
+        email: 'ananya.s@bitsp.ac.in',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&q=80',
+        communityId: 'bitsp',
+        hostel: 'Meera Bhawan, Wing C',
+        isVerified: true,
+        rating: 4.9,
+        reputation: 97,
+        joinedDate: 'Sep 2024'
+      }
+    ];
+
+    const INITIAL_LISTINGS = [
+      {
+        id: 'list_calc_1',
+        title: 'Casio FX-991ES Plus Scientific Calculator',
+        description: 'Perfect for engineering, mathematics, and science courses. Features 417 functions and natural textbook display. Mint condition, used for only one semester.',
+        category: 'Electronics',
+        type: 'buy',
+        price: 650,
+        condition: 'Used - Like New',
+        location: 'Hostel 4, IIT Bombay',
+        communityId: 'iitb',
+        sellerId: 'user_1',
+        views: 34,
+        images: ['https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&fit=crop&q=80'],
+        date: '2026-05-28'
+      },
+      {
+        id: 'list_calc_2',
+        title: 'Casio FX-82MS Scientific Calculator',
+        description: 'Standard scientific calculator with 240 functions. Durable 2-line display. Ideal for basic statistics and algebra. Works perfectly, battery replaced recently.',
+        category: 'Electronics',
+        type: 'buy',
+        price: 450,
+        condition: 'Used - Good',
+        location: 'Hostel 4, IIT Bombay',
+        communityId: 'iitb',
+        sellerId: 'user_2',
+        views: 12,
+        images: ['https://images.unsplash.com/photo-1574634534894-89d7576c8259?w=800&fit=crop&q=80'],
+        date: '2026-06-01'
+      },
+      {
+        id: 'list_calc_3',
+        title: 'Texas Instruments Scientific Calculator',
+        description: 'Scientific calculator ideal for computer science and advanced math. Multiline display, fractions, and scientific notation inputs. Scratch-free body.',
+        category: 'Electronics',
+        type: 'buy',
+        price: 550,
+        condition: 'Used - Like New',
+        location: 'Hostel 4, IIT Bombay',
+        communityId: 'iitb',
+        sellerId: 'user_1',
+        views: 25,
+        images: ['https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&fit=crop&q=80'],
+        date: '2026-05-30'
+      },
+      {
+        id: 'list_calc_4',
+        title: 'HP Engineering Calculator 35s',
+        description: 'Professional scientific programmable calculator. Ideal for engineering, surveying, science, and medicine. RPN and Algebraic entry modes. Very powerful tool.',
+        category: 'Electronics',
+        type: 'buy',
+        price: 400,
+        condition: 'Used - Fair',
+        location: 'Hostel 3, IIT Bombay',
+        communityId: 'iitb',
+        sellerId: 'user_2',
+        views: 45,
+        images: ['https://images.unsplash.com/photo-1574634534894-89d7576c8259?w=800&fit=crop&q=80'],
+        date: '2026-05-25'
+      },
+      {
+        id: 'list_buy_1',
+        title: 'Concepts of Physics by HC Verma (Vol 1 & 2)',
+        description: 'Essential physics reference books for JEE and college level physics. Both volumes are in great condition. No torn pages, clean margins with minimal pencil markings.',
+        category: 'Books',
+        type: 'buy',
+        price: 350,
+        condition: 'Used - Good',
+        location: 'Hostel 3, IIT Bombay',
+        communityId: 'iitb',
+        sellerId: 'user_1',
+        views: 48,
+        images: ['https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&fit=crop&q=80'],
+        date: '2026-06-02'
+      },
+      {
+        id: 'list_rent_1',
+        title: 'Decathlon Rockrider Mountain Bicycle',
+        description: '21-Speed Gear bicycle. Well maintained, dual disk brakes, comfortable gel seat cover. Perfect for riding around the campus or going to nearby shops. Lock and helmet included.',
+        category: 'Sports & Outdoors',
+        type: 'rent',
+        price: 50,
+        rentPeriod: 'day',
+        condition: 'Used - Like New',
+        location: 'Hostel 4 Cycle Stand, IIT Bombay',
+        communityId: 'iitb',
+        sellerId: 'user_1',
+        views: 89,
+        images: ['https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&fit=crop&q=80'],
+        date: '2026-06-03'
+      },
+      {
+        id: 'list_serv_1',
+        title: '1-on-1 Coding Help & Python Tutoring',
+        description: 'Struggling with CS101 or basic programming? I can help you understand algorithms, data structures, and Python syntax. Ex-TA for Computer Programming course.',
+        category: 'Tutoring',
+        type: 'service',
+        price: 250,
+        rentPeriod: 'hour',
+        condition: 'Professional',
+        location: 'Online or Hostel Study Room',
+        communityId: 'iitb',
+        sellerId: 'user_1',
+        views: 120,
+        images: ['https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&fit=crop&q=80'],
+        date: '2026-05-20'
+      }
+    ];
+
+    // Helper functions for state loading
+    const loadState = () => {
+      try {
+        const serializedListings = localStorage.getItem('unimarket_listings');
+        const serializedWishlist = localStorage.getItem('unimarket_wishlist');
+        const serializedCurrentUser = localStorage.getItem('unimarket_current_user');
+        const serializedRentals = localStorage.getItem('unimarket_my_rentals');
+        const serializedCompletedOrders = localStorage.getItem('unimarket_completed_orders');
+
+        return {
+          listings: serializedListings ? JSON.parse(serializedListings) : INITIAL_LISTINGS,
+          users: INITIAL_USERS,
+          currentUser: serializedCurrentUser ? JSON.parse(serializedCurrentUser) : INITIAL_USERS[0],
+          wishlist: serializedWishlist ? JSON.parse(serializedWishlist) : [],
+          myRentals: serializedRentals ? JSON.parse(serializedRentals) : [
+            {
+              id: 'rental_mock_1',
+              listingId: 'list_rent_1',
+              startDate: '2026-06-01',
+              endDate: '2026-06-05',
+              totalCost: 200,
+              status: 'Active',
+              daysLeft: 2
+            }
+          ],
+          completedOrders: serializedCompletedOrders ? JSON.parse(serializedCompletedOrders) : [
+            {
+              id: 'order_mock_1',
+              listingId: 'list_buy_1',
+              purchaseDate: '2026-05-25',
+              pricePaid: 350,
+              sellerName: 'Aarav Mehta'
+            }
+          ]
+        };
+      } catch (err) {
+        console.error("Failed to load local storage state", err);
+        localStorage.removeItem('unimarket_listings');
+        localStorage.removeItem('unimarket_wishlist');
+        localStorage.removeItem('unimarket_current_user');
+        localStorage.removeItem('unimarket_my_rentals');
+        localStorage.removeItem('unimarket_completed_orders');
+        return {
+          listings: INITIAL_LISTINGS,
+          users: INITIAL_USERS,
+          currentUser: INITIAL_USERS[0],
+          wishlist: [],
+          myRentals: [
+            {
+              id: 'rental_mock_1',
+              listingId: 'list_rent_1',
+              startDate: '2026-06-01',
+              endDate: '2026-06-05',
+              totalCost: 200,
+              status: 'Active',
+              daysLeft: 2
+            }
+          ],
+          completedOrders: [
+            {
+              id: 'order_mock_1',
+              listingId: 'list_buy_1',
+              purchaseDate: '2026-05-25',
+              pricePaid: 350,
+              sellerName: 'Aarav Mehta'
+            }
+          ]
+        };
+      }
+    };
+
+    const saveState = (state) => {
+      localStorage.setItem('unimarket_listings', JSON.stringify(state.listings));
+      localStorage.setItem('unimarket_wishlist', JSON.stringify(state.wishlist));
+      localStorage.setItem('unimarket_current_user', JSON.stringify(state.currentUser));
+      localStorage.setItem('unimarket_my_rentals', JSON.stringify(state.myRentals));
+      localStorage.setItem('unimarket_completed_orders', JSON.stringify(state.completedOrders));
+    };
+
+    // --- 3. PAGE COMPONENTS ---
+
+    // HOME PAGE
+    function Home({ listings, activeCommunityId, setActiveCommunityId, setCurrentRoute, setSearchQuery, setFilterType, wishlist, toggleWishlist }) {
+      const [localSearch, setLocalSearch] = useState('');
+      const currentCommunityName = INITIAL_COMMUNITIES.find(c => c.id === activeCommunityId)?.name || 'Your Community';
+
+      const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        setSearchQuery(localSearch);
+        setFilterType('all');
+        setCurrentRoute('marketplace');
+      };
+
+      const navigateToCategory = (type) => {
+        setFilterType(type);
+        setSearchQuery('');
+        if (type === 'rent') setCurrentRoute('rent');
+        else if (type === 'service') setCurrentRoute('services');
+        else setCurrentRoute('marketplace');
+      };
+
+      const recentListings = [...listings]
+        .filter(l => !activeCommunityId || l.communityId === activeCommunityId)
+        .slice(-4)
+        .reverse();
+
+      return (
+        <div className="space-y-16 pb-16 animate-fadeInUp">
+          {/* Hero Banner */}
+          <section className="relative overflow-hidden pt-12 pb-20 bg-gradient-to-br from-indigo-50 via-slate-50 to-blue-50 rounded-3xl border border-slate-100 p-6 md:p-12 shadow-premium">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-100/30 rounded-full blur-3xl -mr-20 -mt-20"></div>
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-100/30 rounded-full blur-3xl -ml-20 -mb-20"></div>
+            
+            <div className="relative max-w-4xl mx-auto text-center space-y-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 text-primary font-semibold text-xs uppercase tracking-wider rounded-full">
+                ★ Hackathon Showcase Mode
+              </div>
+
+              <h1 className="text-4xl md:text-6xl font-extrabold font-display leading-tight tracking-tight">
+                Community Marketplace for{' '}
+                <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                  {currentCommunityName}
+                </span>
+              </h1>
+
+              <p className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto font-normal">
+                Buy textbooks, rent scientific calculators, book bicycle runs, or hire coders locally. Zero commissions. 100% verified peers.
+              </p>
+
+              {/* Selector */}
+              <div className="flex items-center justify-center gap-2 bg-white/70 backdrop-blur-md border border-slate-200 p-3 rounded-2xl max-w-sm mx-auto shadow-card">
+                <IconMapPin className="text-primary w-4 h-4 shrink-0" />
+                <select
+                  value={activeCommunityId}
+                  onChange={(e) => setActiveCommunityId(e.target.value)}
+                  className="bg-transparent border-0 font-bold text-slate-800 text-xs focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Communities</option>
+                  {INITIAL_COMMUNITIES.map(comm => (
+                    <option key={comm.id} value={comm.id}>{comm.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Search */}
+              <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto flex items-center bg-white border-2 border-slate-200 focus-within:border-primary p-2 rounded-xl shadow-card transition-all duration-300">
+                <div className="flex-grow flex items-center px-3 gap-2">
+                  <IconSearch />
+                  <input
+                    type="text"
+                    placeholder="Search 'calculator', 'cycle', 'physics'..."
+                    value={localSearch}
+                    onChange={(e) => setLocalSearch(e.target.value)}
+                    className="w-full bg-transparent border-0 text-slate-700 placeholder-slate-400 focus:outline-none text-xs md:text-sm py-1"
+                  />
+                </div>
+                <button type="submit" className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg text-xs transition duration-200 shadow flex items-center gap-2 shrink-0">
+                  Search
+                </button>
+              </form>
+            </div>
+          </section>
+
+          {/* Quick Categories */}
+          <section className="space-y-6">
+            <h2 className="text-2xl font-bold font-display text-slate-800 text-center md:text-left">What are you looking for?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div onClick={() => navigateToCategory('buy')} className="premium-card p-6 rounded-2xl border bg-white cursor-pointer hover:border-primary/20 hover:shadow-hover transition">
+                <IconShoppingBag />
+                <h3 className="text-lg font-bold font-display mt-4 text-slate-800">Buy & Sell Products</h3>
+                <p className="text-xs text-slate-500 mt-2">Purchase reference books, calculators, engineering gear, or hostel room furnishings.</p>
+              </div>
+              <div onClick={() => navigateToCategory('rent')} className="premium-card p-6 rounded-2xl border bg-white cursor-pointer hover:border-secondary/20 hover:shadow-hover transition">
+                <IconCalendarRange />
+                <h3 className="text-lg font-bold font-display mt-4 text-slate-800">Rent Items</h3>
+                <p className="text-xs text-slate-500 mt-2">Rent bicycles, scientific calculators, sports equipment by the hour, day, or week.</p>
+              </div>
+              <div onClick={() => navigateToCategory('service')} className="premium-card p-6 rounded-2xl border bg-white cursor-pointer hover:border-accent/20 hover:shadow-hover transition">
+                <IconWrench />
+                <h3 className="text-lg font-bold font-display mt-4 text-slate-800">Local Services</h3>
+                <p className="text-xs text-slate-500 mt-2">Offer or find student services like coding assistance, event photos, or hardware repairs.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Recent Listings */}
+          <section className="space-y-6">
+            <h2 className="text-2xl font-bold font-display text-slate-800">Recently Listed Items</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recentListings.map(item => {
+                const inWishlist = wishlist.some(w => w.id === item.id);
+                return (
+                  <div key={item.id} onClick={() => setCurrentRoute(`product-detail-${item.id}`)} className="premium-card rounded-2xl overflow-hidden cursor-pointer flex flex-col bg-white">
+                    <div className="relative pt-[65%] bg-slate-50">
+                      <img src={item.images[0]} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                      <span className={`absolute top-2.5 left-2.5 px-2 py-0.5 text-[9px] font-extrabold uppercase rounded text-white ${
+                        item.type === 'buy' ? 'bg-primary' : item.type === 'rent' ? 'bg-secondary' : 'bg-accent'
+                      }`}>{item.type}</span>
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                      <h4 className="font-bold text-xs md:text-sm text-slate-800 line-clamp-2 leading-snug">{item.title}</h4>
+                      <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-100 font-extrabold text-slate-800">
+                        <span>₹{item.price}{item.type !== 'buy' && `/${item.rentPeriod}`}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">{item.location.split(',')[0]}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    // MARKETPLACE FEED PAGE WITH MULTI-OPTION SEARCH COMPARISON
+    function Marketplace({ listings, activeCommunityId, setCurrentRoute, searchQuery, setSearchQuery, filterType, setFilterType, wishlist, toggleWishlist }) {
+      const [category, setCategory] = useState('All');
+      const [priceLimit, setPriceLimit] = useState(5000);
+      const [compareList, setCompareList] = useState([]);
+
+      const resetFilters = () => {
+        setCategory('All');
+        setPriceLimit(5000);
+        setSearchQuery('');
+        setFilterType('all');
+      };
+
+      const filtered = useMemo(() => {
+        return listings.filter(item => {
+          if (activeCommunityId && item.communityId !== activeCommunityId) return false;
+          if (filterType !== 'all' && item.type !== filterType) return false;
+          if (category !== 'All' && item.category !== category) return false;
+          if (item.price > priceLimit) return false;
+          if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            return item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
+          }
+          return true;
+        });
+      }, [listings, activeCommunityId, filterType, category, priceLimit, searchQuery]);
+
+      const toggleCompare = (item) => {
+        if (compareList.some(c => c.id === item.id)) {
+          setCompareList(compareList.filter(c => c.id !== item.id));
+        } else {
+          if (compareList.length >= 3) return alert("Compare max 3 items!");
+          setCompareList([...compareList, item]);
+        }
+      };
+
+      return (
+        <div className="space-y-6 pb-16 animate-fadeInUp">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-extrabold font-display text-slate-800">Marketplace Feed</h1>
+              <p className="text-slate-500 text-xs md:text-sm">Found {filtered.length} matched listings.</p>
+            </div>
+            <button onClick={resetFilters} className="text-xs font-bold text-primary border-b border-primary/20">Clear Filters</button>
+          </div>
+
+          {/* Search comparing banner */}
+          {searchQuery.toLowerCase().includes('calculator') && filtered.length > 1 && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4.5 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-indigo-800 flex items-center gap-1.5">
+                  <IconArrowRightLeft className="text-indigo-600" />
+                  Intelligent Search results comparing multiple calculator listings
+                </span>
+                <span className="text-[10px] bg-indigo-100 text-primary font-bold px-2 py-0.5 rounded">₹ Indian Rupees</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {filtered.map(c => (
+                  <div key={c.id} className="bg-white border border-indigo-100 p-3 rounded-xl shadow-sm text-center">
+                    <h5 className="font-bold text-[11px] text-slate-800 truncate">{c.title}</h5>
+                    <p className="font-extrabold text-xs text-primary mt-1">₹{c.price}</p>
+                    <button 
+                      onClick={() => setCurrentRoute(`product-detail-${c.id}`)}
+                      className="mt-2 text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md"
+                    >
+                      Compare Details
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Comparison drawer */}
+          {compareList.length > 0 && (
+            <div className="bg-white border-2 border-primary/10 rounded-2xl p-4 shadow-premium sticky top-20 z-40">
+              <div className="flex justify-between items-center border-b pb-2 mb-3">
+                <span className="font-bold text-xs text-slate-800">Compare Panel ({compareList.length}/3)</span>
+                <button onClick={() => setCompareList([])} className="text-[10px] text-slate-400 hover:text-slate-600">Clear</button>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {compareList.map(c => (
+                  <div key={c.id} className="p-2 bg-slate-50 border rounded-lg text-xs">
+                    <h5 className="font-bold truncate">{c.title}</h5>
+                    <p className="font-bold text-primary mt-0.5">₹{c.price}</p>
+                    <button onClick={() => toggleCompare(c)} className="text-[9px] text-red-500 font-bold mt-1">Remove</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sidebar and Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+            <aside className="bg-white border rounded-2xl p-5 shadow-card space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase">Search</label>
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Type to search..."
+                  className="w-full px-3 py-1.5 border rounded-lg text-xs text-slate-700 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase">Pricing Cap</label>
+                <input 
+                  type="range" 
+                  min="10" 
+                  max="5000" 
+                  value={priceLimit}
+                  onChange={(e) => setPriceLimit(e.target.value)}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg accent-primary cursor-pointer"
+                />
+                <div className="flex justify-between text-[9px] text-slate-400">
+                  <span>₹10</span>
+                  <span>₹{priceLimit}</span>
+                </div>
+              </div>
+            </aside>
+
+            <div className="md:col-span-3">
+              {filtered.length === 0 ? (
+                <div className="text-center py-16 text-slate-400 text-xs">No listings match.</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filtered.map(item => {
+                    const isComparing = compareList.some(c => c.id === item.id);
+                    return (
+                      <div key={item.id} onClick={() => setCurrentRoute(`product-detail-${item.id}`)} className="premium-card flex flex-col rounded-2xl overflow-hidden cursor-pointer bg-white">
+                        <div className="relative pt-[65%] bg-slate-50">
+                          <img src={item.images[0]} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                          <span className={`absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase rounded text-white ${
+                            item.type === 'buy' ? 'bg-primary' : item.type === 'rent' ? 'bg-secondary' : 'bg-accent'
+                          }`}>{item.type}</span>
+                          
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); toggleCompare(item); }}
+                            className={`absolute top-2 left-12 px-2 py-0.5 rounded text-[8px] font-semibold ${
+                              isComparing ? 'bg-primary text-white' : 'bg-white/90 text-slate-600'
+                            }`}
+                          >
+                            {isComparing ? 'Comparing' : '+ Compare'}
+                          </button>
+                        </div>
+
+                        <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
+                          <h4 className="font-bold text-xs md:text-sm text-slate-800 line-clamp-2">{item.title}</h4>
+                          <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
+                          <div className="flex justify-between items-center text-xs font-bold pt-2 border-t text-slate-800">
+                            <span>₹{item.price}{item.type !== 'buy' && `/${item.rentPeriod}`}</span>
+                            <span className="text-[10px] font-normal text-slate-400 truncate max-w-[80px]">{item.location}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // RENT ITEMS PAGE
+    function RentItems({ listings, activeCommunityId, setCurrentRoute, wishlist, toggleWishlist }) {
+      const filtered = listings.filter(l => l.type === 'rent' && (!activeCommunityId || l.communityId === activeCommunityId));
+
+      return (
+        <div className="space-y-6 pb-16 animate-fadeInUp">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border p-6 rounded-2xl">
+            <h1 className="text-2xl font-extrabold text-slate-800">Rent Daily Items</h1>
+            <p className="text-xs text-slate-500 mt-1">Rent cycles, calculators, sports gear, and books directly from campus peers.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filtered.map(item => (
+              <div key={item.id} onClick={() => setCurrentRoute(`product-detail-${item.id}`)} className="premium-card flex flex-col rounded-2xl overflow-hidden bg-white cursor-pointer">
+                <div className="relative pt-[60%] bg-slate-50">
+                  <img src={item.images[0]} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                  <span className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase rounded text-white bg-secondary">₹{item.price}/{item.rentPeriod}</span>
+                </div>
+                <div className="p-4 space-y-2 flex-grow">
+                  <h4 className="font-bold text-xs md:text-sm truncate text-slate-800">{item.title}</h4>
+                  <p className="text-[10px] text-slate-400 line-clamp-2">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // SERVICES PAGE
+    function Services({ listings, activeCommunityId, setCurrentRoute }) {
+      const filtered = listings.filter(l => l.type === 'service' && (!activeCommunityId || l.communityId === activeCommunityId));
+
+      return (
+        <div className="space-y-6 pb-16 animate-fadeInUp">
+          <div className="bg-gradient-to-r from-teal-50 to-indigo-50 border p-6 rounded-2xl">
+            <h1 className="text-2xl font-extrabold text-slate-800">Student Services Directory</h1>
+            <p className="text-xs text-slate-500 mt-1">Hire peers for coding tutoring, photo shoots, and notebook fixes.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {filtered.map(item => (
+              <div key={item.id} onClick={() => setCurrentRoute(`product-detail-${item.id}`)} className="premium-card flex flex-col rounded-2xl overflow-hidden bg-white cursor-pointer">
+                <div className="relative pt-[50%] bg-slate-50">
+                  <img src={item.images[0]} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                  <span className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase rounded text-white bg-accent">₹{item.price}/{item.rentPeriod}</span>
+                </div>
+                <div className="p-4 space-y-2 flex-grow">
+                  <h4 className="font-bold text-xs md:text-sm text-slate-800 truncate">{item.title}</h4>
+                  <p className="text-[10px] text-slate-400 line-clamp-2">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // PRODUCT DETAIL PAGE WITH CHAT SIMULATOR & RENTAL BOOKING
+    function ProductDetails({ itemId, listings, currentUser, setCurrentRoute, toggleWishlist, wishlist, bookRental, buyItem }) {
+      const item = listings.find(l => l.id === itemId);
+      if (!item) return <div className="text-center py-10">Listing Not Found.</div>;
+
+      const [showModal, setShowModal] = useState(false);
+      const [modalMode, setModalMode] = useState(''); // 'chat', 'phone', 'book', 'buy'
+      const [chatList, setChatList] = useState([{ sender: 'seller', text: 'Hi! Let me know if you are free to meet up on campus.' }]);
+      const [chatInput, setChatInput] = useState('');
+      
+      // Date Picker calculations
+      const [sDate, setSDate] = useState('');
+      const [eDate, setEDate] = useState('');
+      const [bookingDays, setBookingDays] = useState(1);
+      const [successMsg, setSuccessMsg] = useState('');
+
+      useEffect(() => {
+        if (sDate && eDate) {
+          const s = new Date(sDate);
+          const e = new Date(eDate);
+          const diff = Math.ceil(Math.abs(e - s) / (1000 * 60 * 60 * 24)) || 1;
+          setBookingDays(diff);
+        }
+      }, [sDate, eDate]);
+
+      const handleSendChat = (e) => {
+        e.preventDefault();
+        if (!chatInput.trim()) return;
+        setChatList([...chatList, { sender: 'buyer', text: chatInput }]);
+        setChatInput('');
+        setTimeout(() => {
+          setChatList(prev => [...prev, { sender: 'seller', text: 'Sounds perfect! Meet in the hostel common room tomorrow?' }]);
+        }, 1500);
+      };
+
+      const handleRentSubmit = (e) => {
+        e.preventDefault();
+        bookRental({
+          id: `rent_${Date.now()}`,
+          listingId: item.id,
+          startDate: sDate,
+          endDate: eDate,
+          totalCost: item.price * bookingDays,
+          status: 'Active',
+          daysLeft: bookingDays
+        });
+        setSuccessMsg('Booking Confirmed!');
+        setTimeout(() => { setShowModal(false); setSuccessMsg(''); setCurrentRoute('dashboard-user'); }, 1500);
+      };
+
+      const handleBuySubmit = () => {
+        buyItem({
+          id: `order_${Date.now()}`,
+          listingId: item.id,
+          purchaseDate: new Date().toISOString().split('T')[0],
+          pricePaid: item.price,
+          sellerName: 'Aarav Mehta'
+        });
+        setSuccessMsg('Purchase Complete!');
+        setTimeout(() => { setShowModal(false); setSuccessMsg(''); setCurrentRoute('dashboard-user'); }, 1500);
+      };
+
+      return (
+        <div className="space-y-8 pb-16 animate-fadeInUp">
+          <button onClick={() => setCurrentRoute('marketplace')} className="text-xs font-semibold text-slate-500 flex items-center gap-1">← Back</button>
+          
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            <div className="md:col-span-7 bg-white p-4 border rounded-2xl">
+              <div className="relative pt-[70%] bg-slate-100 rounded-xl overflow-hidden">
+                <img src={item.images[0]} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+              </div>
+            </div>
+
+            <div className="md:col-span-5 bg-white border p-6 rounded-2xl shadow-card space-y-6">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase">{item.category} • {item.condition}</span>
+                <h1 className="text-xl md:text-2xl font-extrabold text-slate-800 leading-snug mt-1">{item.title}</h1>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl text-lg font-extrabold text-slate-800">
+                ₹{item.price.toLocaleString('en-IN')}{item.type !== 'buy' && <span className="text-xs font-normal text-slate-400">/{item.rentPeriod}</span>}
+              </div>
+
+              <div className="space-y-2">
+                {item.type === 'rent' ? (
+                  <button onClick={() => { setModalMode('book'); setShowModal(true); }} className="w-full py-2.5 bg-secondary text-white font-bold rounded-xl text-xs">Request Rental Booking</button>
+                ) : item.type === 'buy' ? (
+                  <button onClick={() => { setModalMode('buy'); setShowModal(true); }} className="w-full py-2.5 bg-primary text-white font-bold rounded-xl text-xs">Buy Item Instantly</button>
+                ) : (
+                  <button onClick={() => { setModalMode('book'); setShowModal(true); }} className="w-full py-2.5 bg-accent text-white font-bold rounded-xl text-xs">Hire Service</button>
+                )}
+
+                <button onClick={() => { setModalMode('chat'); setShowModal(true); }} className="w-full py-2 bg-white border text-slate-700 font-bold rounded-xl text-xs">Simulate In-App Chat</button>
+                <button onClick={() => { setModalMode('phone'); setShowModal(true); }} className="w-full py-2 bg-slate-55 border-0 text-slate-500 font-semibold rounded-xl text-xs">Reveal Phone / WhatsApp</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border p-6 rounded-2xl">
+            <h3 className="font-bold border-b pb-2 mb-3">Item Description</h3>
+            <p className="text-xs md:text-sm text-slate-600 leading-relaxed whitespace-pre-line">{item.description}</p>
+          </div>
+
+          {/* CONTACT MODAL SIMULATOR */}
+          {showModal && (
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white border rounded-2xl w-full max-w-md shadow-premium overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="bg-slate-50 px-5 py-3.5 border-b flex justify-between items-center">
+                  <span className="font-bold text-xs text-slate-700">Contact Panel</span>
+                  <button onClick={() => setShowModal(false)}><IconX /></button>
+                </div>
+
+                <div className="p-5 flex-1 overflow-y-auto">
+                  {successMsg ? (
+                    <div className="text-center py-6 text-green-600 font-bold text-sm">{successMsg}</div>
+                  ) : (
+                    <>
+                      {modalMode === 'chat' && (
+                        <div className="flex flex-col h-[320px]">
+                          <div className="flex-grow overflow-y-auto space-y-3">
+                            {chatList.map((m, i) => (
+                              <div key={i} className={`flex flex-col ${m.sender === 'buyer' ? 'items-end' : 'items-start'}`}>
+                                <span className={`px-3 py-1.5 rounded-xl text-xs ${m.sender === 'buyer' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-800'}`}>
+                                  {m.text}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <form onSubmit={handleSendChat} className="flex gap-2 border-t pt-2 mt-2">
+                            <input 
+                              type="text" 
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              placeholder="Type a message..."
+                              className="flex-grow px-3 py-1.5 border rounded-lg text-xs" 
+                            />
+                            <button type="submit" className="px-3 bg-primary text-white rounded-lg text-xs">Send</button>
+                          </form>
+                        </div>
+                      )}
+
+                      {modalMode === 'phone' && (
+                        <div className="text-center py-6 space-y-4">
+                          <h4 className="font-bold text-sm">Call Campus Peer</h4>
+                          <p className="text-lg font-bold font-mono tracking-wider bg-slate-50 p-3.5 rounded-lg border-2 border-dashed border-slate-200">+91 98765 43210</p>
+                          <p className="text-[10px] text-slate-400">Handover items locally inside your campus hostel blocks.</p>
+                        </div>
+                      )}
+
+                      {modalMode === 'book' && (
+                        <form onSubmit={handleRentSubmit} className="space-y-4">
+                          <h4 className="font-bold text-xs uppercase text-slate-400">Duration Booking Picker</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Start Date</label>
+                              <input type="date" required value={sDate} onChange={(e) => setSDate(e.target.value)} className="w-full border p-1.5 rounded text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">End Date</label>
+                              <input type="date" required value={eDate} onChange={(e) => setEDate(e.target.value)} className="w-full border p-1.5 rounded text-xs" />
+                            </div>
+                          </div>
+                          <div className="bg-slate-50 p-3 rounded-lg text-xs flex justify-between font-extrabold text-slate-800">
+                            <span>Total Estimated Cost ({bookingDays} days)</span>
+                            <span className="text-secondary">₹{item.price * bookingDays}</span>
+                          </div>
+                          <button type="submit" className="w-full py-2 bg-secondary text-white font-bold rounded-lg text-xs">Confirm Rent Schedule</button>
+                        </form>
+                      )}
+
+                      {modalMode === 'buy' && (
+                        <div className="space-y-4">
+                          <h4 className="font-bold text-sm">Confirm Purchase</h4>
+                          <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
+                            <div className="flex justify-between"><span>Subtotal</span><span>₹{item.price}</span></div>
+                            <div className="flex justify-between font-bold text-slate-800"><span>Total</span><span>₹{item.price}</span></div>
+                          </div>
+                          <button onClick={handleBuySubmit} className="w-full py-2 bg-primary text-white font-bold rounded-lg text-xs">Complete Order</button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // AUTH SIGN-UP / ID UPLOAD SCREEN
+    function Auth({ setCurrentRoute, setCurrentUser, users, setUsers }) {
+      const [isLogin, setIsLogin] = useState(true);
+      const [email, setEmail] = useState('');
+      const [name, setName] = useState('');
+      const [hostel, setHostel] = useState('');
+      const [comm, setComm] = useState('iitb');
+      const [cardUploaded, setCardUploaded] = useState(false);
+      const [cardName, setCardName] = useState('');
+      const [err, setErr] = useState('');
+      const [success, setSuccess] = useState(false);
+
+      const checkUniversityDomain = (val) => {
+        return val.endsWith('.ac.in') || val.endsWith('.edu') || val.endsWith('.org');
+      };
+
+      const handleLogin = (e) => {
+        e.preventDefault();
+        const matched = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (matched) {
+          setCurrentUser(matched);
+          setCurrentRoute('home');
+        } else {
+          // Dynamic mock session user so login never errors for demo
+          const dummy = { id: `u_${Date.now()}`, name: email.split('@')[0].toUpperCase(), email, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150', communityId: comm, hostel: 'Hostel 4, Room 101', isVerified: true, rating: 5.0, reputation: 100 };
+          setCurrentUser(dummy);
+          setUsers([...users, dummy]);
+          setCurrentRoute('home');
+        }
+      };
+
+      const handleRegister = (e) => {
+        e.preventDefault();
+        setErr('');
+
+        if (!checkUniversityDomain(email)) {
+          setErr('Please use an academic email domain (e.g. @.ac.in, @.edu).');
+          return;
+        }
+
+        if (!cardUploaded) {
+          setErr('Please select a student ID Card file for simulated campus verification.');
+          return;
+        }
+
+        const dummy = { id: `u_${Date.now()}`, name, email, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150', communityId: comm, hostel, isVerified: true, rating: 5.0, reputation: 100 };
+        setUsers([...users, dummy]);
+        setCurrentUser(dummy);
+        setSuccess(true);
+        setTimeout(() => { setSuccess(false); setCurrentRoute('home'); }, 1500);
+      };
+
+      return (
+        <div className="max-w-md mx-auto bg-white border p-6 md:p-8 rounded-2xl shadow-premium animate-fadeInUp space-y-6">
+          <div className="flex border-b pb-3 justify-center gap-6">
+            <button onClick={() => { setIsLogin(true); setErr(''); }} className={`pb-2 font-bold text-sm ${isLogin ? 'border-b-2 border-primary text-slate-800' : 'text-slate-400'}`}>Sign In</button>
+            <button onClick={() => { setIsLogin(false); setErr(''); }} className={`pb-2 font-bold text-sm ${!isLogin ? 'border-b-2 border-primary text-slate-800' : 'text-slate-400'}`}>Register</button>
+          </div>
+
+          {err && <div className="p-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs">{err}</div>}
+          {success && <div className="p-2.5 bg-green-50 text-green-600 text-center font-bold text-xs">Simulated Verification Complete! Redirecting...</div>}
+
+          {isLogin ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Campus Email</label>
+                <input type="email" required placeholder="name@domain.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border p-2 rounded-lg text-xs" />
+              </div>
+              <button type="submit" className="w-full py-2.5 bg-primary text-white font-bold rounded-lg text-xs shadow-md">Sign In</button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Full Name</label>
+                <input type="text" required placeholder="Aarav Mehta" value={name} onChange={(e) => setName(e.target.value)} className="w-full border p-2 rounded-lg text-xs" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Campus Email</label>
+                <input type="email" required placeholder="student@iitb.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border p-2 rounded-lg text-xs" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Community</label>
+                  <select value={comm} onChange={(e) => setComm(e.target.value)} className="w-full border p-2 rounded-lg text-xs">
+                    {INITIAL_COMMUNITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Hostel / Room</label>
+                  <input type="text" required placeholder="Hostel 4, 302" value={hostel} onChange={(e) => setHostel(e.target.value)} className="w-full border p-2 rounded-lg text-xs" />
+                </div>
+              </div>
+              
+              {/* ID Upload file selector */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">College Student ID Card Upload (Simulation)</label>
+                <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center cursor-pointer relative hover:bg-slate-50 transition">
+                  <input type="file" onChange={(e) => { if(e.target.files[0]) { setCardName(e.target.files[0].name); setCardUploaded(true); } }} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <Upload className="w-5 h-5 mx-auto text-slate-400 mb-1" />
+                  <p className="text-[10px] text-slate-500 font-bold">{cardUploaded ? `Uploaded: ${cardName}` : 'Select ID Card Photo'}</p>
+                </div>
+              </div>
+
+              <button type="submit" className="w-full py-2.5 bg-primary text-white font-bold rounded-lg text-xs shadow-md">Submit Verification Request</button>
+            </form>
+          )}
+        </div>
+      );
+    }
+
+    // USER DASHBOARD
+    function UserDashboard({ currentUser, wishlist, toggleWishlist, myRentals, completedOrders, listings, setCurrentRoute }) {
+      const [tab, setTab] = useState('rentals');
+
+      return (
+        <div className="space-y-8 pb-16 animate-fadeInUp">
+          <div className="bg-white border p-6 rounded-2xl shadow-premium flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <img src={currentUser.avatar} alt="avatar" className="w-12 h-12 rounded-full object-cover border-2 border-primary/20" />
+              <div>
+                <h1 className="text-xl font-bold text-slate-800 leading-snug">{currentUser.name}</h1>
+                <p className="text-xs text-slate-400">{currentUser.email} • {currentUser.hostel}</p>
+              </div>
+            </div>
+            <div className="p-3 bg-indigo-50 border text-primary rounded-xl text-center">
+              <div className="font-extrabold text-sm">{currentUser.reputation}</div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Rep Score</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2 border-b pb-2">
+            <button onClick={() => setTab('rentals')} className={`px-4 py-1.5 text-xs font-bold rounded-xl transition ${tab === 'rentals' ? 'bg-secondary text-white' : 'text-slate-500'}`}>My Rentals ({myRentals.length})</button>
+            <button onClick={() => setTab('orders')} className={`px-4 py-1.5 text-xs font-bold rounded-xl transition ${tab === 'orders' ? 'bg-primary text-white' : 'text-slate-500'}`}>My Purchases ({completedOrders.length})</button>
+            <button onClick={() => setTab('wish')} className={`px-4 py-1.5 text-xs font-bold rounded-xl transition ${tab === 'wish' ? 'bg-accent text-white' : 'text-slate-500'}`}>My Wishlist ({wishlist.length})</button>
+          </div>
+
+          <div className="bg-white border p-5 rounded-2xl">
+            {tab === 'rentals' && (
+              <div className="divide-y space-y-3">
+                {myRentals.length === 0 ? <p className="text-xs text-slate-400 text-center py-4">No active rentals.</p> : (
+                  myRentals.map(r => {
+                    const l = listings.find(i => i.id === r.listingId) || {};
+                    return (
+                      <div key={r.id} className="py-2 flex justify-between items-center text-xs">
+                        <div>
+                          <h4 onClick={() => l.id && setCurrentRoute(`product-detail-${l.id}`)} className="font-bold text-slate-800 hover:text-secondary cursor-pointer">{l.title || 'Rental Item'}</h4>
+                          <span className="text-[10px] text-slate-400">Due: {r.endDate}</span>
+                        </div>
+                        <span className="bg-green-50 border text-green-700 font-bold px-2 py-0.5 rounded text-[9px]">{r.status} ({r.daysLeft}d left)</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {tab === 'orders' && (
+              <div className="divide-y space-y-3">
+                {completedOrders.length === 0 ? <p className="text-xs text-slate-400 text-center py-4">No purchases.</p> : (
+                  completedOrders.map(o => {
+                    const l = listings.find(i => i.id === o.listingId) || {};
+                    return (
+                      <div key={o.id} className="py-2 flex justify-between items-center text-xs">
+                        <div>
+                          <h4 onClick={() => l.id && setCurrentRoute(`product-detail-${l.id}`)} className="font-bold text-slate-800 hover:text-primary cursor-pointer">{l.title || 'Bought Item'}</h4>
+                          <span className="text-[10px] text-slate-400">Date: {o.purchaseDate}</span>
+                        </div>
+                        <span className="font-bold text-slate-700">₹{o.pricePaid}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {tab === 'wish' && (
+              <div className="divide-y space-y-3">
+                {wishlist.length === 0 ? <p className="text-xs text-slate-400 text-center py-4">Wishlist is empty.</p> : (
+                  wishlist.map(w => (
+                    <div key={w.id} className="py-2 flex justify-between items-center text-xs">
+                      <h4 onClick={() => setCurrentRoute(`product-detail-${w.id}`)} className="font-bold text-slate-800 hover:text-accent cursor-pointer">{w.title}</h4>
+                      <button onClick={() => toggleWishlist(w)} className="text-red-500 font-bold">Remove</button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // SELLER DASHBOARD WITH SVG CHART & BASE64 UPLOADER
+    function SellerDashboard({ currentUser, listings, addListing, removeListing, communities }) {
+      const [showForm, setShowForm] = useState(false);
+      const [title, setTitle] = useState('');
+      const [desc, setDesc] = useState('');
+      const [cat, setCat] = useState('Electronics');
+      const [type, setType] = useState('buy');
+      const [price, setPrice] = useState('');
+      const [location, setLocation] = useState(currentUser.hostel || 'Hostel 4, IIT Bombay');
+      const [period, setPeriod] = useState('day');
+      const [img, setImg] = useState('');
+      
+      const myList = listings.filter(l => l.sellerId === currentUser.id);
+
+      const handleImgFile = (e) => {
+        const f = e.target.files[0];
+        if(!f) return;
+        const reader = new FileReader();
+        reader.onloadend = () => setImg(reader.result);
+        reader.readAsDataURL(f);
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        const dummyImg = type === 'rent' ? 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80' : 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&q=80';
+        addListing({
+          id: `l_${Date.now()}`,
+          title,
+          description: desc,
+          category: cat,
+          type,
+          price: Number(price),
+          condition: 'Used - Good',
+          location,
+          communityId: currentUser.communityId,
+          sellerId: currentUser.id,
+          views: 0,
+          images: [img || dummyImg],
+          rentPeriod: type !== 'buy' ? period : undefined,
+          date: new Date().toISOString().split('T')[0]
+        });
+        
+        // Reset
+        setTitle(''); setDesc(''); setPrice(''); setImg(''); setShowForm(false);
+      };
+
+      return (
+        <div className="space-y-8 pb-16 animate-fadeInUp">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-extrabold font-display text-slate-800">Seller Dashboard</h1>
+              <p className="text-slate-500 text-xs md:text-sm">List items, view analytics, and monitor campus earnings.</p>
+            </div>
+            <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-primary text-white font-bold rounded-xl text-xs">{showForm ? 'Listings Feed' : 'List New Item'}</button>
+          </div>
+
+          {showForm ? (
+            <form onSubmit={handleSubmit} className="bg-white border p-6 rounded-2xl shadow-card space-y-4">
+              <h3 className="font-bold border-b pb-2 text-slate-700">Add Listing Info</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Type</label>
+                  <select value={type} onChange={(e) => setType(e.target.value)} className="w-full border p-2 rounded text-xs">
+                    <option value="buy">Sell</option>
+                    <option value="rent">Rent Out</option>
+                    <option value="service">Offer Service</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Category</label>
+                  <select value={cat} onChange={(e) => setCat(e.target.value)} className="w-full border p-2 rounded text-xs">
+                    <option value="Electronics">Electronics</option>
+                    <option value="Books">Books</option>
+                    <option value="Tutoring">Tutoring</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Title</label>
+                <input type="text" required placeholder="e.g. Engineering Calculator" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border p-2 rounded text-xs" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
+                <textarea required rows="3" placeholder="Condition details..." value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full border p-2 rounded text-xs" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Price (₹)</label>
+                  <input type="number" required placeholder="400" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border p-2 rounded text-xs" />
+                </div>
+                {type !== 'buy' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Period</label>
+                    <select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-full border p-2 rounded text-xs">
+                      <option value="hour">per Hour</option>
+                      <option value="day">per Day</option>
+                      <option value="week">per Week</option>
+                    </select>
+                  </div>
+                )}
+                <div className="space-y-1 col-span-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Meeting Point</label>
+                  <input type="text" required value={location} onChange={(e) => setLocation(e.target.value)} className="w-full border p-2 rounded text-xs" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Item Photo Upload</label>
+                <div className="border border-dashed p-4 rounded text-center relative hover:bg-slate-50 cursor-pointer">
+                  <input type="file" accept="image/*" onChange={handleImgFile} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <p className="text-[10px] text-slate-500 font-bold">{img ? 'Image Loaded ✔' : 'Choose Local File'}</p>
+                </div>
+              </div>
+
+              <button type="submit" className="px-5 py-2 bg-primary text-white font-bold rounded-lg text-xs">Post Listing</button>
+            </form>
+          ) : (
+            <>
+              {/* Analytics */}
+              <div className="grid grid-cols-3 gap-6">
+                <div className="bg-white border-l-4 border-l-primary p-4 rounded-xl shadow-sm text-xs">
+                  <h4 className="text-slate-400 uppercase tracking-wider font-bold">Active Listings</h4>
+                  <p className="text-lg font-bold text-slate-800">{myList.length}</p>
+                </div>
+                <div className="bg-white border-l-4 border-l-secondary p-4 rounded-xl shadow-sm text-xs">
+                  <h4 className="text-slate-400 uppercase tracking-wider font-bold">Total Views</h4>
+                  <p className="text-lg font-bold text-slate-800">{myList.reduce((acc, c)=>acc+c.views, 0)}</p>
+                </div>
+                <div className="bg-white border-l-4 border-l-green-500 p-4 rounded-xl shadow-sm text-xs">
+                  <h4 className="text-slate-400 uppercase tracking-wider font-bold">Estimated Earnings</h4>
+                  <p className="text-lg font-bold text-slate-800">₹{myList.reduce((acc, c)=>acc+(c.views*3), 150)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                
+                {/* SVG Graph */}
+                <div className="md:col-span-5 bg-white border p-5 rounded-2xl shadow-card space-y-4">
+                  <h3 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Earnings Overview</h3>
+                  <div className="w-full aspect-video bg-slate-50 border rounded-xl p-2 flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 100 50">
+                      <line x1="10" y1="10" x2="90" y2="10" stroke="#E2E8F0" strokeWidth="0.2" />
+                      <line x1="10" y1="20" x2="90" y2="20" stroke="#E2E8F0" strokeWidth="0.2" />
+                      <line x1="10" y1="30" x2="90" y2="30" stroke="#E2E8F0" strokeWidth="0.2" />
+                      <line x1="10" y1="40" x2="90" y2="40" stroke="#E2E8F0" strokeWidth="0.2" />
+                      <path d="M 10 40 L 25 32 L 40 38 L 55 24 L 70 28 L 85 15 L 85 40 Z" fill="rgba(79,70,229,0.15)" />
+                      <path d="M 10 40 L 25 32 L 40 38 L 55 24 L 70 28 L 85 15" fill="none" stroke="#4F46E5" strokeWidth="1.5" />
+                      <text x="10" y="46" fontSize="2.5" fill="#94A3B8" textAnchor="middle">Jan</text>
+                      <text x="40" y="46" fontSize="2.5" fill="#94A3B8" textAnchor="middle">Mar</text>
+                      <text x="70" y="46" fontSize="2.5" fill="#94A3B8" textAnchor="middle">May</text>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Listings feed */}
+                <div className="md:col-span-7 bg-white border p-5 rounded-2xl shadow-card space-y-3">
+                  <h3 className="font-bold text-xs text-slate-500 uppercase tracking-wider border-b pb-2">Your Active Listings</h3>
+                  {myList.map(item => (
+                    <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-0 text-xs">
+                      <div>
+                        <h4 className="font-bold text-slate-700 truncate max-w-[200px]">{item.title}</h4>
+                        <span className="text-[9px] text-slate-400">{item.views} Views • {item.type}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold">₹{item.price}</span>
+                        <button onClick={() => removeListing(item.id)} className="text-red-500 font-bold hover:bg-red-50 p-1.5 rounded"><IconTrash /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // CONTACT PAGE
+    function Contact() {
+      const [name, setName] = useState('');
+      const [email, setEmail] = useState('');
+      const [msg, setMsg] = useState('');
+      const [sent, setSent] = useState(false);
+
+      const handleSend = (e) => {
+        e.preventDefault();
+        setSent(true);
+        setTimeout(() => { setSent(false); setName(''); setEmail(''); setMsg(''); }, 2000);
+      };
+
+      return (
+        <div className="max-w-2xl mx-auto bg-white border p-6 md:p-8 rounded-2xl shadow-premium space-y-6 animate-fadeInUp">
+          <h1 className="text-2xl font-extrabold text-slate-800">Contact Support Coordinates</h1>
+          <p className="text-xs text-slate-500">Reach out to campus ambassador support offices.</p>
+
+          {sent ? (
+            <div className="p-4 bg-green-50 text-green-700 text-center font-bold text-xs rounded-xl">Message Sent Successfully!</div>
+          ) : (
+            <form onSubmit={handleSend} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <input type="text" required placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="border p-2 rounded-lg text-xs" />
+                <input type="email" required placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="border p-2 rounded-lg text-xs" />
+              </div>
+              <textarea required rows="4" placeholder="Detail inquiry (Exchange feature reports, listing claims, verification assistance)..." value={msg} onChange={(e) => setMsg(e.target.value)} className="w-full border p-2 rounded-lg text-xs" />
+              <button type="submit" className="px-5 py-2 bg-primary text-white font-bold rounded-lg text-xs shadow-md">Submit Support Request</button>
+            </form>
+          )}
+        </div>
+      );
+    }
+
+    // --- 4. CENTRAL APP ROUTING ---
+    function App() {
+      const [state, setState] = useState(() => loadState());
+      const [currentRoute, setCurrentRoute] = useState('home');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [filterType, setFilterType] = useState('all');
+      const [activeCommunityId, setActiveCommunityId] = useState('iitb');
+
+      useEffect(() => {
+        saveState(state);
+      }, [state]);
+
+      const setCurrentUser = (user) => setState(prev => ({ ...prev, currentUser: user }));
+      const setUsers = (usersList) => setState(prev => ({ ...prev, users: usersList }));
+      const addListing = (newList) => setState(prev => ({ ...prev, listings: [...prev.listings, newList] }));
+      const removeListing = (id) => setState(prev => ({ ...prev, listings: prev.listings.filter(l => l.id !== id) }));
+      const toggleWishlist = (item) => setState(prev => {
+        const exist = prev.wishlist.some(w => w.id === item.id);
+        const list = exist ? prev.wishlist.filter(w => w.id !== item.id) : [...prev.wishlist, item];
+        return { ...prev, wishlist: list };
+      });
+      const bookRental = (newRent) => setState(prev => ({ ...prev, myRentals: [newRent, ...prev.myRentals] }));
+      const buyItem = (newOrder) => setState(prev => ({
+        ...prev,
+        completedOrders: [newOrder, ...prev.completedOrders],
+        listings: prev.listings.filter(l => l.id !== newOrder.listingId)
+      }));
+
+      const navigateTo = (route, type='all') => {
+        setFilterType(type);
+        setCurrentRoute(route);
+        window.scrollTo(0,0);
+      };
+
+      return (
+        <div className="flex flex-col min-h-screen">
+          {/* Header */}
+          <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+              <button onClick={() => navigateTo('home')} className="flex items-center gap-2 text-xl font-extrabold font-display bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                <Store className="w-5 h-5 text-primary shrink-0" />
+                <span>UniMarket</span>
+              </button>
+
+              <nav className="hidden md:flex gap-6 text-xs md:text-sm font-semibold">
+                <button onClick={() => navigateTo('marketplace')} className={currentRoute === 'marketplace' ? 'text-primary' : 'text-slate-500'}>Marketplace</button>
+                <button onClick={() => navigateTo('rent', 'rent')} className={currentRoute === 'rent' ? 'text-secondary' : 'text-slate-500'}>Rentals</button>
+                <button onClick={() => navigateTo('services', 'service')} className={currentRoute === 'services' ? 'text-accent' : 'text-slate-500'}>Services</button>
+                <button onClick={() => navigateTo('contact')} className={currentRoute === 'contact' ? 'text-slate-700' : 'text-slate-500'}>Contact</button>
+              </nav>
+
+              <div className="flex items-center gap-3">
+                {state.currentUser ? (
+                  <>
+                    <button onClick={() => navigateTo('dashboard-seller')} className="px-3 py-1.5 border hover:border-primary/20 text-xs font-semibold rounded-lg shadow-sm hover:bg-slate-50 flex items-center gap-1">
+                      <IconPlus /> <span>Post item</span>
+                    </button>
+                    <button onClick={() => navigateTo('dashboard-user')} className="flex items-center gap-2 group">
+                      <img src={state.currentUser.avatar} alt="avatar" className="w-7 h-7 rounded-full object-cover border" />
+                      <span className="text-xs font-bold text-slate-700 group-hover:text-primary max-w-[80px] truncate">{state.currentUser.name}</span>
+                    </button>
+                    <button onClick={() => { setCurrentUser(null); setCurrentRoute('login'); }} className="text-xs text-slate-400 hover:text-slate-600">Sign Out</button>
+                  </>
+                ) : (
+                  <button onClick={() => navigateTo('login')} className="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow">Join</button>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Main viewport */}
+          <main className="flex-grow max-w-7xl w-full mx-auto px-4 pt-8 pb-12">
+            {(() => {
+              if (currentRoute === 'home') return <Home listings={state.listings} activeCommunityId={activeCommunityId} setActiveCommunityId={setActiveCommunityId} setCurrentRoute={setCurrentRoute} setSearchQuery={setSearchQuery} setFilterType={setFilterType} wishlist={state.wishlist} toggleWishlist={toggleWishlist} />;
+              if (currentRoute === 'marketplace') return <Marketplace listings={state.listings} activeCommunityId={activeCommunityId} setCurrentRoute={setCurrentRoute} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filterType={filterType} setFilterType={setFilterType} wishlist={state.wishlist} toggleWishlist={toggleWishlist} />;
+              if (currentRoute === 'rent') return <RentItems listings={state.listings} activeCommunityId={activeCommunityId} setCurrentRoute={setCurrentRoute} wishlist={state.wishlist} toggleWishlist={toggleWishlist} />;
+              if (currentRoute === 'services') return <Services listings={state.listings} activeCommunityId={activeCommunityId} setCurrentRoute={setCurrentRoute} />;
+              if (currentRoute === 'login' || currentRoute === 'register') return <Auth setCurrentRoute={setCurrentRoute} setCurrentUser={setCurrentUser} users={state.users} setUsers={setUsers} />;
+              if (currentRoute === 'dashboard-user') return <UserDashboard currentUser={state.currentUser} wishlist={state.wishlist} toggleWishlist={toggleWishlist} myRentals={state.myRentals} completedOrders={state.completedOrders} listings={state.listings} setCurrentRoute={setCurrentRoute} />;
+              if (currentRoute === 'dashboard-seller') return <SellerDashboard currentUser={state.currentUser} listings={state.listings} addListing={addListing} removeListing={removeListing} communities={INITIAL_COMMUNITIES} setCurrentRoute={setCurrentRoute} />;
+              if (currentRoute === 'contact') return <Contact />;
+              
+              if (currentRoute.startsWith('product-detail-')) {
+                const id = currentRoute.replace('product-detail-', '');
+                return <ProductDetails itemId={id} listings={state.listings} currentUser={state.currentUser} setCurrentRoute={setCurrentRoute} toggleWishlist={toggleWishlist} wishlist={state.wishlist} bookRental={bookRental} buyItem={buyItem} />;
+              }
+
+              return <div className="text-center py-20 text-slate-500">Page not found.</div>;
+            })()}
+          </main>
+
+          {/* Footer */}
+          <footer className="bg-slate-900 text-white mt-auto border-t border-slate-800 py-8">
+            <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
+              <span className="flex items-center gap-1.5 font-bold text-slate-300">
+                <Store className="w-4 h-4 text-primary" />
+                UniMarket Community Marketplace Platform
+              </span>
+              <p>© 2026 UniMarket. Fully Sandbox Verified for College Campus Deployments.</p>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
